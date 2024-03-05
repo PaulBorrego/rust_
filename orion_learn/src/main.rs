@@ -1,7 +1,8 @@
 use orion::aead;
 use orion::pwhash::{self, PasswordHash};
 use orion::errors::UnknownCryptoError;
-use std::io::stdin;
+use std::fs::File;
+use std::io::{stdin, Write};
 fn main() {
     println!("Hello, world!");
     // let _ = encrypt();
@@ -58,7 +59,9 @@ pub fn interface() -> () {
 
     let password = pwhash::Password::from_slice(&input.as_bytes()).unwrap();    // sets password variable
     let hash = pwhash::hash_password(&password, 3, 1 << 16).unwrap();   //hash from password
+    let _ = add_encrypt(hash.unprotected_as_encoded());
     
+
     while l {
         input.clear();                                      //gets rid of previous input
         println!("Enter Password:");        
@@ -75,7 +78,11 @@ pub fn interface() -> () {
             },
             Err(_) => println!("Incorrect password."),
         }
-
     }
 
+}
+pub fn add_encrypt (s: &str) -> std::io::Result<()> {
+    let mut file = File::create("hold.txt")?;
+    file.write_all(s.as_bytes())?;
+    Ok(())
 }
