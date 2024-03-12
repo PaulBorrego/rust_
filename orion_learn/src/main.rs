@@ -1,10 +1,16 @@
 use orion::aead;
 use orion::pwhash::{self, PasswordHash};
 use orion::errors::UnknownCryptoError;
-use std::fs::File;
+use std::error::Error;
+// use std::fs;
+use std::fs::{self, File};
 use std::io::{stdin, Write};
+// use std::io;
+use std::path::Path;
+
+
 fn main() {
-    println!("Hello, world!");
+    // println!("Hello, world!");
     // let _ = encrypt();
     // let _ = psswd();
 
@@ -22,7 +28,9 @@ fn main() {
     //     Ok(_) => println!("Bad match"),
     //     Err(_) => println!("Good Fail"),
     // }
-    interface();
+    // interface();
+    encrypt_interface();
+
 }
 pub fn encrypt() -> Result<(), UnknownCryptoError>{
     let secret_key = aead::SecretKey::default();
@@ -86,3 +94,58 @@ pub fn add_encrypt (s: &str) -> std::io::Result<()> {
     file.write_all(s.as_bytes())?;
     Ok(())
 }
+pub fn encrypt_data(s: &[u8], a: String) ->  Result<File, std::io::Error> {
+    let temp = format!("{}_encrypt.txt",a);
+    println!("{temp}");
+    let p = Path::new(&temp);
+    let mut file = File::create(p)?;
+    file.write_all(s)?;
+    Ok(file)
+}
+
+pub fn encrypt_interface() -> () {
+    //todo ask for user id
+    //todo ask for password
+
+    let mut input = String::new();
+    println!("What would you like to encrypt? (s)tring or (f)ile");
+    stdin().read_line(&mut input).unwrap();
+    
+    let encrypted_file = match input.chars().next().unwrap() {
+        's' => string_encrypt().unwrap(),
+        'f' => file_encrypt().unwrap(),
+        _ => panic!("AHHH"), 
+    };
+    
+}
+
+pub fn string_encrypt() -> Result<File, Box<dyn Error>>{
+    println!("Type string you'd like to be encrypted: ");
+    let mut buf = String::new();
+    stdin().read_line(& mut buf).unwrap();
+    let secret_key = aead::SecretKey::default();
+
+    let text = aead::seal(&secret_key, buf.as_bytes())?; 
+    match encrypt_data(&text, String::from("string")) {
+        Ok(f) => Ok(f),
+        Err(_) => Err("Writing Error")?,
+    }
+}
+pub fn file_encrypt() -> Result<File, Box<dyn Error>>{
+    println!("Type file path you'd like to be encrypted: ");
+    let mut buf = String::new();
+    stdin().read_line(& mut buf).unwrap();
+    buf.pop();    //gets rid of \n
+    let secret_key = aead::SecretKey::default();
+
+    let contents = fs::read_to_string(buf.clone())?;
+    println!("{}", contents);
+    // println!("{:?}",String::from_utf8(contents.clone()));
+    let text = aead::seal(&secret_key, &contents.as_bytes())?; 
+
+    match encrypt_data(&text,buf.to_string()) {
+        Ok(f) => Ok(f),
+        Err(_) => Err("Writing Error")?
+    }
+}
+
